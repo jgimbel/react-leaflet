@@ -7,6 +7,7 @@ import Leaflet from 'leaflet';
 import boundsType from './types/bounds';
 import childrenType from './types/children';
 import latlngType from './types/latlng';
+import layerContainerType from './types/layerContainer';
 
 import MapComponent from './MapComponent';
 
@@ -26,6 +27,11 @@ export default class Map extends MapComponent {
     minZoom: PropTypes.number,
     style: PropTypes.object,
     zoom: PropTypes.number,
+  };
+
+  static childContextTypes = {
+    layerContainer: layerContainerType,
+    map: PropTypes.instanceOf(Leaflet.Map),
   };
 
   static defaultProps = {
@@ -87,10 +93,18 @@ export default class Map extends MapComponent {
     return !next.equals(prev);
   }
 
+  getChildContext() {
+    const map = this.leafletElement;
+    return {
+      map,
+      layerContainer: map,
+    };
+  }
+
   render() {
     const map = this.leafletElement;
     const children = map ? React.Children.map(this.props.children, child => {
-      return child ? React.cloneElement(child, {map, layerContainer: map}) : null;
+      return child ? React.cloneElement(child, {map, layerContainer: map}) : null; /*Legacy version of passing the map*/
     }) : null;
 
     return (
@@ -98,7 +112,7 @@ export default class Map extends MapComponent {
         className={this.props.className}
         id={this.state.id}
         style={this.props.style}>
-        {children}
+        {children} 
       </div>
     );
   }

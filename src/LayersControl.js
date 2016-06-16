@@ -22,7 +22,23 @@ const controlledLayerPropTypes = {
 class ControlledLayer extends Component {
   static propTypes = controlledLayerPropTypes;
 
-  componentWillReceiveProps({ checked, map }) {
+  static childContextTypes = {
+    map: PropTypes.instanceOf(Map),
+  };
+
+  getChildContext() {
+    return {
+      // Proxy layer container method calls to local methods
+      layerContainer: {
+        addLayer: ::this.addLayer,
+        removeLayer: ::this.removeLayer,
+      },
+      map: this.props.map,
+    }
+  }
+
+  componentWillReceiveProps({ checked }) {
+    const map = this.getMap();
     // Handle dynamically (un)checking the layer => adding/removing from the map
     if (checked && !this.props.checked) {
       map.addLayer(this.layer);
@@ -35,6 +51,13 @@ class ControlledLayer extends Component {
   removeLayer(layer) {
     this.props.removeLayer(layer);
   }
+
+  getMap() {
+    warning(this.props.map && !this.context.map, 'Passing map as a prop is deprecated. Please check the change log for more information.')
+    return this.context.map || this.props.map;
+  }
+
+
 
   render() {
     return cloneElement(Children.only(this.props.children), {
@@ -72,17 +95,18 @@ export default class LayersControl extends MapControl {
   static propTypes = {
     baseLayers: PropTypes.object,
     children: childrenType,
+    overlays: PropTypes.object,
+  };
+
+  static contextTypes = {
     layerContainer: layerContainerType,
     map: PropTypes.instanceOf(Map),
-    overlays: PropTypes.object,
   };
 
   componentWillMount() {
     const {
       baseLayers,
       children: _children,
-      layerContainer: _lc,
-      map: _map,
       overlays,
       ...options,
     } = this.props;
@@ -106,25 +130,28 @@ export default class LayersControl extends MapControl {
 
   addBaseLayer(layer, name, checked = false) {
     if (checked) {
-      this.props.map.addLayer(layer);
+      this.getMap().addLayer(layer);
     }
     this.leafletElement.addBaseLayer(layer, name);
   }
 
   addOverlay(layer, name, checked = false) {
     if (checked) {
-      this.props.map.addLayer(layer);
+      this.getMap().addLayer(layer);
     }
     this.leafletElement.addOverlay(layer, name);
   }
 
   removeLayer(layer) {
-    this.props.map.removeLayer(layer);
+    this.getMap().removeLayer(layer);
   }
 
   getClonedChildrenWithProps(extra) {
-    const { children, layerContainer, map } = this.props;
-    const props = assign({layerContainer, map}, extra);
+    const { children } = this.props;
+    const props = assign({
+      layerContainer: this.getLayerContainer(), 
+      map: this.getMap(),
+    }, extra);
 
     return Children.map(children, child => {
       return child ? cloneElement(child, props) : null;

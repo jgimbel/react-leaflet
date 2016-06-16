@@ -7,9 +7,13 @@ export default class LayerGroup extends MapLayer {
     super.componentWillMount();
     this.leafletElement = layerGroup();
   }
-
+  getChildContext() {
+    return {
+      layerContainer: this.leafletElement,
+    };
+  }
   render() {
-    return this.renderChildrenWithProps({
+    return this.renderChildrenWithProps({ //legacy version of getting layerContainer
       layerContainer: this.leafletElement,
     });
   }
